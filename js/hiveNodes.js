@@ -1,6 +1,6 @@
 export const HIVE_NODES = [
-    // 'https://api.hive.blog',
     'https://api.deathwing.me',
+    'https://api.hive.blog',
     'https://api.openhive.network',
     'https://rpc.ecency.com',
     'https://api.hivekings.com'
