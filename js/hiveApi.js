@@ -3,7 +3,8 @@ import { getCurrentNode, findWorkingNode, HIVE_NODES, switchToNextNode } from '.
 
 async function getAccountHistory(curator, lastId) {
     return retryWithFailover(async () => {
-        return await hive.api.getAccountHistoryAsync(curator, lastId, 100);
+        // Richiediamo sempre 1000 operazioni alla volta (il massimo consentito)
+        return await hive.api.getAccountHistoryAsync(curator, lastId, 1000);
     });
 }
 
@@ -16,6 +17,15 @@ async function getPostDetails(comment_author, comment_permlink) {
         return { vote, content };
     });
 }
+
+const getOperationField = (opData, fields) => {
+    for (const field of fields) {
+        if (opData[field] !== undefined) {
+            return opData[field];
+        }
+    }
+    throw new Error(`Required field not found. Checked fields: ${fields.join(', ')}`);
+};
 
 export async function calculateEfficiency() {
     const curator = document.getElementById('curator').value;
@@ -56,11 +66,13 @@ export async function calculateEfficiency() {
             buttonText.textContent = `Analisi in corso (${processedCount} operazioni)`;
             
             try {
+                // Ora riceviamo 1000 operazioni alla volta invece di 100
                 const accountHistory = await getAccountHistory(curator, lastId);
                 if (accountHistory.length === 0) break;
         
                 accountHistory.sort((a, b) => b[0] - a[0]);
                 
+                // Processiamo tutte le operazioni ricevute
                 for (const entry of accountHistory) {
                     const [id, operation] = entry;
                     
@@ -72,47 +84,56 @@ export async function calculateEfficiency() {
                             isCurrentWeek = false;
                             break;
                         }
-        
-                        const { author: comment_author, permlink: comment_permlink, reward: rewardAmount } = operation.op[1];
-                        const postIdentifier = `@${comment_author}/${comment_permlink}`;
                         
+                        const opData = operation.op[1];
                         try {
-                            const { vote, content } = await getPostDetails(comment_author, comment_permlink);
+                            const comment_author = getOperationField(opData, ['author', 'comment_author']);
+                            const comment_permlink = getOperationField(opData, ['permlink', 'comment_permlink']);
+                            const rewardAmount = getOperationField(opData, ['reward']);
                             
-                            const voteDetails = vote.find(v => v.voter === curator);
-        
-                            if (voteDetails) {
-                                const reward_vests = parseFloat(rewardAmount.split(' ')[0]);
-                                const vote_weight = voteDetails.weight / 1000000000;
-                                const percent = voteDetails.percent / 100;
-                                const vote_time = new Date(voteDetails.time + 'Z');
-                                const created_time = new Date(content.created + 'Z');
-                                const voteAge = Math.floor((vote_time - created_time) / (1000 * 60)); // Convert to minutes
+                            const postIdentifier = `@${comment_author}/${comment_permlink}`;
+                            
+                            try {
+                                const { vote, content } = await getPostDetails(comment_author, comment_permlink);
                                 
-                                const effective_reward_hp = await vestsToHive(reward_vests);
-                                const estimate_reward = await vestsToHive(vote_weight);
-                                const vote_weight_hp = estimate_reward * 2;
-                                const efficiency = (effective_reward_hp / estimate_reward) * 100;
-        
-                                allResults.push({
-                                    post: postIdentifier,
-                                    rewardHP: effective_reward_hp,
-                                    voteValue: vote_weight_hp,
-                                    expectedReward: estimate_reward,
-                                    efficiency: efficiency,
-                                    percent: percent,
-                                    time: voteDetails.time,
-                                    voteAge: voteAge
-                                });
-                                
-                                processedCount++;
-                                
-                                if (processedCount % 10 === 0) {
-                                    updateUI(allResults);
+                                const voteDetails = vote.find(v => v.voter === curator);
+            
+                                if (voteDetails) {
+                                    const reward_vests = parseFloat(rewardAmount.split(' ')[0]);
+                                    const vote_weight = voteDetails.weight / 1000000000;
+                                    const percent = voteDetails.percent / 100;
+                                    const vote_time = new Date(voteDetails.time + 'Z');
+                                    const created_time = new Date(content.created + 'Z');
+                                    const voteAge = Math.floor((vote_time - created_time) / (1000 * 60)); // Convert to minutes
+                                    
+                                    const effective_reward_hp = await vestsToHive(reward_vests);
+                                    const estimate_reward = await vestsToHive(vote_weight);
+                                    const vote_weight_hp = estimate_reward * 2;
+                                    const efficiency = (effective_reward_hp / estimate_reward) * 100;
+            
+                                    allResults.push({
+                                        post: postIdentifier,
+                                        rewardHP: effective_reward_hp,
+                                        voteValue: vote_weight_hp,
+                                        expectedReward: estimate_reward,
+                                        efficiency: efficiency,
+                                        percent: percent,
+                                        time: voteDetails.time,
+                                        voteAge: voteAge
+                                    });
+                                    
+                                    processedCount++;
+                                    
+                                    if (processedCount % 10 === 0) {
+                                        updateUI(allResults);
+                                    }
                                 }
+                            } catch (error) {
+                                console.warn(`Errore nel processare il post ${postIdentifier}:`, error);
+                                continue;
                             }
                         } catch (error) {
-                            console.warn(`Errore nel processare il post ${postIdentifier}:`, error);
+                            console.warn(`Invalid operation data structure: ${error.message}`);
                             continue;
                         }
                     }
