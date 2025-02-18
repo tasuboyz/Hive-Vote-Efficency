@@ -109,7 +109,7 @@ export async function calculateEfficiency() {
                                     const effective_reward_hp = await vestsToHive(reward_vests);
                                     const estimate_reward = await vestsToHive(vote_weight);
                                     const vote_weight_hp = estimate_reward * 2;
-                                    const efficiency = (effective_reward_hp / estimate_reward) * 100;
+                                    const efficiency = ((effective_reward_hp - estimate_reward) / estimate_reward) * 100;
             
                                     allResults.push({
                                         post: postIdentifier,
