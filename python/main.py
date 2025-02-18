@@ -72,17 +72,21 @@ def main():
     vote_value_key = f"Valore Voto ({power_symbol})"
     reward_key = f"Ricompensa ({power_symbol})"
 
-    # Initialize dictionaries for tracking data
+    # Inizializza il dizionario per tenere traccia dei dati
     author_efficiency_dict = {}
     
+    # Aggiungiamo anche i dati per tracciare a quale post/autore mettiamo like 
     data = {
         'voting_power': [],
         'vote_delay': [],
         'reward': [],
         'efficiency': [],
+        'author_avg_efficiency': [],
         'success': [],
         'author_reputation': [],
-        'author_avg_efficiency': [],
+        'Post': [],
+        'Author': [],
+        'like_efficiency': [],
     }
 
     # Itera sulla cronologia dell'account
@@ -121,7 +125,7 @@ def main():
 
                 vote_value = teoric_reward * 2
 
-                # Calcola l'efficienza
+                # Calcola l'efficienza (che useremo in output come "like_efficiency")
                 efficiency = (((reward_amount - teoric_reward) / teoric_reward) * 100) if vote_value > 0 else None
 
                 results.append({
@@ -135,17 +139,24 @@ def main():
                     "Percentuale": f"{vote_percent:.2f}",
                 })
 
+                # Calcola l'efficienza media storica dell'autore
                 current_efficiency = efficiency if efficiency else 0
                 avg_efficiency = update_efficiency_average(author, current_efficiency, author_efficiency_dict)
 
-                # Append data for machine learning
+                # Append data per il ML
                 data['voting_power'].append(vote_percent)
-                data['vote_delay'].append(age / 60)  # Convert seconds to minutes
+                data['vote_delay'].append(age / 60)  # converte in minuti
                 data['reward'].append(reward_amount)
-                data['efficiency'].append(efficiency if efficiency else 0)
+                data['efficiency'].append(efficiency if efficiency else 0)  # non verrà usata per training
                 data['author_avg_efficiency'].append(avg_efficiency)
+                # Il target "success" indica se mettere like (1 se l'efficienza > 50)
                 data['success'].append(1 if efficiency and efficiency > 50 else 0)
                 data['author_reputation'].append(author_reputation)
+
+                # Salviamo informazioni per l'output Excel
+                data['Post'].append(post_identifier)
+                data['Author'].append(author)
+                data['like_efficiency'].append(efficiency if efficiency else 0)
 
                 count += 1
                 if count >= 1000:  # Limita a 1000 risultati
@@ -157,51 +168,47 @@ def main():
 
     logger.info("Elaborazione dati completata. Inizio addestramento modello...")
 
-    # Create DataFrame
+    # Creazione DataFrame
     df = pd.DataFrame(data)
 
-    # Separate features and target variable based on the updated data
+    # Separiamo le feature per l'addestramento: NOTA che efficiency non viene usata per trainare
     X = df[['voting_power', 'vote_delay', 'author_avg_efficiency']]
     y = df['success']
 
-    # Split the dataset into training and new data sets
+    # Split del dataset in training e nuovi dati
     X_train, X_new, y_train, y_new = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    # Create and train the logistic regression model
+    # Creazione e addestramento del modello
     model = LogisticRegression()
     model.fit(X_train, y_train)
 
-    # Make predictions on the training set
+    # Valutazione sul training set
     y_pred = model.predict(X_train)
-
-    # Evaluate the model's performance
     accuracy = accuracy_score(y_train, y_pred)
     report = classification_report(y_train, y_pred)
-
     logger.info(f'Accuratezza del modello: {accuracy:.2f}')
     logger.info('Report di classificazione:')
     logger.info(report)
 
-    # Example of using the model to make predictions on new data
+    # Previsioni sui nuovi dati
     predictions = model.predict(X_new)
     logger.info(f'Previsioni per i nuovi dati: {predictions}')
 
-    # Create a DataFrame with the new data and predictions
-    new_data_with_predictions = X_new.copy()
-    new_data_with_predictions['success'] = y_new
-    new_data_with_predictions['prediction'] = predictions
+    # Creazione del DataFrame per Excel: includiamo Post, Author, like_efficiency, il target reale ed il predetto
+    prediction_df = df.loc[X_new.index, ['Post', 'Author', 'like_efficiency']].copy()
+    prediction_df['real_success'] = y_new
+    prediction_df['prediction'] = predictions
 
-    # Save the DataFrame to an Excel file
-    new_data_with_predictions.to_excel('predictions.xlsx', index=False)
+    # Salva il file Excel
+    prediction_df.to_excel('predictions.xlsx', index=False)
     logger.info("File Excel con le previsioni salvato come 'predictions.xlsx'.")
 
-    # Mostra i risultati
+    # Mostra i risultati nel logger
     if results:
         logger.info("\n\nRISULTATI ANALISI CURATION")
         logger.info(f"Blockchain: {BLOCKCHAIN_CHOICE}")
         logger.info(f"Account analizzato: @{curator}")
         logger.info("="*60)
-        
         for idx, res in enumerate(results, 1):
             logger.info(f"RISULTATO #{idx}")
             logger.info(f"Post: {res['Post']}")
