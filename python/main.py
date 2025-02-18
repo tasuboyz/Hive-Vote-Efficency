@@ -5,6 +5,11 @@ from beem import Steem, Hive
 from beem.nodelist import NodeList
 from beem.vote import Vote
 from beem.comment import Comment
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, classification_report
+import numpy as np
 
 # Configurazione blockchain (impostare 'HIVE' o 'STEEM')
 BLOCKCHAIN_CHOICE = "HIVE"  # <-- Modificare qui per cambiare blockchain
@@ -27,7 +32,25 @@ def convert_vests_to_power(amount, blockchain_instance):
         logger.error(f"Errore nella conversione da vesting shares a power: {e}")
         return 0
 
+def update_efficiency_average(author, current_efficiency, author_efficiency_dict):
+    """Aggiorna l'efficienza media di un autore."""
+    if author not in author_efficiency_dict:
+        author_efficiency_dict[author] = {
+            'total': current_efficiency,
+            'count': 1,
+            'average': current_efficiency
+        }
+    else:
+        author_data = author_efficiency_dict[author]
+        author_data['total'] += current_efficiency
+        author_data['count'] += 1
+        author_data['average'] = author_data['total'] / author_data['count']
+    
+    return author_efficiency_dict[author]['average']
+
 def main():
+    logger.info("Inizio elaborazione dati...")
+
     # Inizializza la connessione alla blockchain selezionata
     steem_node = "https://api.moecki.online"
     hive_node = "https://api.hive.blog"
@@ -49,6 +72,19 @@ def main():
     vote_value_key = f"Valore Voto ({power_symbol})"
     reward_key = f"Ricompensa ({power_symbol})"
 
+    # Initialize dictionaries for tracking data
+    author_efficiency_dict = {}
+    
+    data = {
+        'voting_power': [],
+        'vote_delay': [],
+        'reward': [],
+        'efficiency': [],
+        'success': [],
+        'author_reputation': [],
+        'author_avg_efficiency': [],
+    }
+
     # Itera sulla cronologia dell'account
     for h in account.history_reverse():
         if h['type'] == 'curation_reward':
@@ -58,6 +94,9 @@ def main():
                 permlink = h.get('comment_permlink') or h.get('permlink')
                 post_identifier = f"@{author}/{permlink}"
                 post = Comment(post_identifier, blockchain_instance=stm)
+
+                author_reputation = post['author_reputation']
+                author_payout_token_dollar = post['author_payout_value']
 
                 # Tempi importanti
                 op_time = datetime.strptime(h['timestamp'], '%Y-%m-%dT%H:%M:%S').replace(tzinfo=timezone.utc)
@@ -78,10 +117,12 @@ def main():
                     weight = vote.weight / 100
                 else:
                     weight = vote.weight / 1000000000
-                vote_value = convert_vests_to_power(weight, stm)
+                teoric_reward = convert_vests_to_power(weight, stm)
+
+                vote_value = teoric_reward * 2
 
                 # Calcola l'efficienza
-                efficiency = (reward_amount / vote_value * 100) if vote_value > 0 else None
+                efficiency = (((reward_amount - teoric_reward) / teoric_reward) * 100) if vote_value > 0 else None
 
                 results.append({
                     "Post": post_identifier,
@@ -94,13 +135,65 @@ def main():
                     "Percentuale": f"{vote_percent:.2f}",
                 })
 
+                current_efficiency = efficiency if efficiency else 0
+                avg_efficiency = update_efficiency_average(author, current_efficiency, author_efficiency_dict)
+
+                # Append data for machine learning
+                data['voting_power'].append(vote_percent)
+                data['vote_delay'].append(age / 60)  # Convert seconds to minutes
+                data['reward'].append(reward_amount)
+                data['efficiency'].append(efficiency if efficiency else 0)
+                data['author_avg_efficiency'].append(avg_efficiency)
+                data['success'].append(1 if efficiency and efficiency > 50 else 0)
+                data['author_reputation'].append(author_reputation)
+
                 count += 1
-                if count >= 20:  # Limita a 20 risultati
+                if count >= 1000:  # Limita a 1000 risultati
                     break
 
             except Exception as e:
                 logger.error(f"Errore processando {post_identifier}: {str(e)}")
                 continue
+
+    logger.info("Elaborazione dati completata. Inizio addestramento modello...")
+
+    # Create DataFrame
+    df = pd.DataFrame(data)
+
+    # Separate features and target variable based on the updated data
+    X = df[['voting_power', 'vote_delay', 'author_avg_efficiency']]
+    y = df['success']
+
+    # Split the dataset into training and new data sets
+    X_train, X_new, y_train, y_new = train_test_split(X, y, test_size=0.2, random_state=42)
+
+    # Create and train the logistic regression model
+    model = LogisticRegression()
+    model.fit(X_train, y_train)
+
+    # Make predictions on the training set
+    y_pred = model.predict(X_train)
+
+    # Evaluate the model's performance
+    accuracy = accuracy_score(y_train, y_pred)
+    report = classification_report(y_train, y_pred)
+
+    logger.info(f'Accuratezza del modello: {accuracy:.2f}')
+    logger.info('Report di classificazione:')
+    logger.info(report)
+
+    # Example of using the model to make predictions on new data
+    predictions = model.predict(X_new)
+    logger.info(f'Previsioni per i nuovi dati: {predictions}')
+
+    # Create a DataFrame with the new data and predictions
+    new_data_with_predictions = X_new.copy()
+    new_data_with_predictions['success'] = y_new
+    new_data_with_predictions['prediction'] = predictions
+
+    # Save the DataFrame to an Excel file
+    new_data_with_predictions.to_excel('predictions.xlsx', index=False)
+    logger.info("File Excel con le previsioni salvato come 'predictions.xlsx'.")
 
     # Mostra i risultati
     if results:
@@ -121,6 +214,8 @@ def main():
             logger.info("-"*60)
     else:
         logger.info("Nessuna curation reward trovata nella cronologia")
+
+    logger.info("Operazione completata.")
 
 if __name__ == "__main__":
     main()

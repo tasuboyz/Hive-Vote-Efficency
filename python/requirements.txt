@@ -1,2 +1,6 @@
 beem
 tabulate
+pandas
+scikit-learn
+numpy
+openpyxl

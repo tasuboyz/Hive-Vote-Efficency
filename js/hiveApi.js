@@ -155,7 +155,10 @@ export async function calculateEfficiency() {
         if (allResults.length === 0) {
             showError('Nessuna curation reward trovata per l\'utente selezionato nell\'ultima settimana.');
         } else {
+            window.currentResults = allResults;
             updateUI(allResults);
+            const event = new Event('resultsAvailable');
+            document.dispatchEvent(event);
         }
     } catch (error) {
         console.error(error);
