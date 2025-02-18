@@ -12,7 +12,7 @@ from sklearn.metrics import accuracy_score, classification_report
 import numpy as np
 
 # Configurazione blockchain (impostare 'HIVE' o 'STEEM')
-BLOCKCHAIN_CHOICE = "HIVE"  # <-- Modificare qui per cambiare blockchain
+BLOCKCHAIN_CHOICE = "STEEM"  # <-- Modificare qui per cambiare blockchain
 
 # Configuriamo il logger
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -48,6 +48,22 @@ def update_efficiency_average(author, current_efficiency, author_efficiency_dict
     
     return author_efficiency_dict[author]['average']
 
+def update_payout_average(author, current_payout, author_payout_dict):
+    """Updates the average payout for an author."""
+    if author not in author_payout_dict:
+        author_payout_dict[author] = {
+            'total': current_payout,
+            'count': 1,
+            'average': current_payout
+        }
+    else:
+        payout_data = author_payout_dict[author]
+        payout_data['total'] += current_payout
+        payout_data['count'] += 1
+        payout_data['average'] = payout_data['total'] / payout_data['count']
+    
+    return author_payout_dict[author]['average']
+
 def main():
     logger.info("Inizio elaborazione dati...")
 
@@ -74,6 +90,7 @@ def main():
 
     # Inizializza il dizionario per tenere traccia dei dati
     author_efficiency_dict = {}
+    author_payout_dict = {}
     
     # Aggiungiamo anche i dati per tracciare a quale post/autore mettiamo like 
     data = {
@@ -87,6 +104,7 @@ def main():
         'Post': [],
         'Author': [],
         'like_efficiency': [],
+        'author_avg_payout': [],  # New field
     }
 
     # Itera sulla cronologia dell'account
@@ -100,7 +118,8 @@ def main():
                 post = Comment(post_identifier, blockchain_instance=stm)
 
                 author_reputation = post['author_reputation']
-                author_payout_token_dollar = post['author_payout_value']
+                author_payout_token_dollar = float(str(post['author_payout_value']).split()[0])  # Convert to float
+                avg_payout = update_payout_average(author, author_payout_token_dollar, author_payout_dict)
 
                 # Tempi importanti
                 op_time = datetime.strptime(h['timestamp'], '%Y-%m-%dT%H:%M:%S').replace(tzinfo=timezone.utc)
@@ -157,9 +176,10 @@ def main():
                 data['Post'].append(post_identifier)
                 data['Author'].append(author)
                 data['like_efficiency'].append(efficiency if efficiency else 0)
+                data['author_avg_payout'].append(avg_payout)
 
                 count += 1
-                if count >= 1000:  # Limita a 1000 risultati
+                if count >= 1000:  # Limita a 2000 risultati
                     break
 
             except Exception as e:
@@ -172,7 +192,7 @@ def main():
     df = pd.DataFrame(data)
 
     # Separiamo le feature per l'addestramento: NOTA che efficiency non viene usata per trainare
-    X = df[['voting_power', 'vote_delay', 'author_avg_efficiency']]
+    X = df[['vote_delay', 'author_avg_efficiency', 'author_reputation']]
     y = df['success']
 
     # Split del dataset in training e nuovi dati
@@ -203,24 +223,23 @@ def main():
     prediction_df.to_excel('predictions.xlsx', index=False)
     logger.info("File Excel con le previsioni salvato come 'predictions.xlsx'.")
 
-    # Mostra i risultati nel logger
-    if results:
-        logger.info("\n\nRISULTATI ANALISI CURATION")
-        logger.info(f"Blockchain: {BLOCKCHAIN_CHOICE}")
-        logger.info(f"Account analizzato: @{curator}")
-        logger.info("="*60)
-        for idx, res in enumerate(results, 1):
-            logger.info(f"RISULTATO #{idx}")
-            logger.info(f"Post: {res['Post']}")
-            logger.info(f"Votato il: {res['Data Voto']}")
-            logger.info(f"Età post al voto: {res['Età Post (s)']} secondi")
-            logger.info(f"{vote_value_key}: {res[vote_value_key]}")
-            logger.info(f"{reward_key}: {res[reward_key]}")
-            logger.info(f"Efficienza: {res['Efficienza (%)']}%")
-            logger.info(f"Percentuale: {res['Percentuale']}%")
-            logger.info("-"*60)
-    else:
-        logger.info("Nessuna curation reward trovata nella cronologia")
+    # if results:
+    #     logger.info("\n\nRISULTATI ANALISI CURATION")
+    #     logger.info(f"Blockchain: {BLOCKCHAIN_CHOICE}")
+    #     logger.info(f"Account analizzato: @{curator}")
+    #     logger.info("="*60)
+    #     for idx, res in enumerate(results, 1):
+    #         logger.info(f"RISULTATO #{idx}")
+    #         logger.info(f"Post: {res['Post']}")
+    #         logger.info(f"Votato il: {res['Data Voto']}")
+    #         logger.info(f"Età post al voto: {res['Età Post (s)']} secondi")
+    #         logger.info(f"{vote_value_key}: {res[vote_value_key]}")
+    #         logger.info(f"{reward_key}: {res[reward_key]}")
+    #         logger.info(f"Efficienza: {res['Efficienza (%)']}%")
+    #         logger.info(f"Percentuale: {res['Percentuale']}%")
+    #         logger.info("-"*60)
+    # else:
+    #     logger.info("Nessuna curation reward trovata nella cronologia")
 
     logger.info("Operazione completata.")
 
