@@ -31,18 +31,18 @@ export function setLoadingState(isLoading, button, buttonText, loader, loadingEl
     }
 }
 
-export function updateUI(results) {
+export function updateUI(results, apr) {
     const statsContainer = document.getElementById('statsContainer');
     statsContainer.style.opacity = '0';
     statsContainer.classList.remove('hidden');
     statsContainer.offsetHeight;
     statsContainer.style.opacity = '1';
     
-    updateStats(results);
+    updateStats(results, apr);
     updateTableContent(results);
 }
 
-function updateStats(results) {
+function updateStats(results, apr) {
     const avgEfficiency = results.reduce((acc, cur) => acc + cur.efficiency, 0) / results.length;
     const bestVote = Math.max(...results.map(r => r.efficiency));
     const totalHP = results.reduce((acc, cur) => acc + cur.rewardHP, 0);
@@ -51,6 +51,12 @@ function updateStats(results) {
     document.getElementById('bestVote').textContent = `${bestVote.toFixed(2)}%`;
     document.getElementById('totalHP').textContent = `${totalHP.toFixed(4)} HP`;
     document.getElementById('votesAnalyzed').textContent = results.length;
+    
+    // Update APR stats
+    const aprElement = document.querySelector('#aprStats p');
+    if (aprElement) {
+        aprElement.textContent = apr ? `${apr.toFixed(2)}%` : '-';
+    }
 }
 
 export function updateTableContent(results) {

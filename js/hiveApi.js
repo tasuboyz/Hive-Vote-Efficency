@@ -155,8 +155,25 @@ export async function calculateEfficiency() {
         if (allResults.length === 0) {
             showError('Nessuna curation reward trovata per l\'utente selezionato nell\'ultima settimana.');
         } else {
-            window.currentResults = allResults;
-            updateUI(allResults);
+            // Calculate total weekly rewards
+            const totalWeeklyRewards = allResults.reduce((sum, result) => sum + result.rewardHP, 0);
+            
+            // Get account data to fetch vesting shares
+            const accountData = await fetchAccountData(curator);
+            const delegatedVestingShares = parseFloat(accountData.delegated_vesting_shares.split(' ')[0]);
+            const vestingShares = parseFloat(accountData.vesting_shares.split(' ')[0]);
+            const receivedVestingShares = parseFloat(accountData.received_vesting_shares.split(' ')[0]);
+            const totalVestingShares = vestingShares + receivedVestingShares - delegatedVestingShares;            
+            
+            const apr = await calculateAPR(totalWeeklyRewards, totalVestingShares);
+            
+            window.currentResults = {
+                ...allResults,
+                apr: apr.toFixed(2)
+            };
+            
+            // Update UI with APR
+            updateUI(allResults, apr);
             const event = new Event('resultsAvailable');
             document.dispatchEvent(event);
         }
@@ -184,6 +201,30 @@ async function retryWithFailover(apiCall) {
     }
 }
 
+export async function fetchAccountData(account) {
+    return new Promise((resolve, reject) => {
+      hive.api.getAccounts([account], async (err, accounts) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        
+        if (!accounts || accounts.length === 0) {
+          reject(new Error('Account not found'));
+          return;
+        }
+        
+        const accountData = accounts[0];
+        try {
+  
+          resolve(accountData);
+        } catch (error) {
+          reject(error);
+        }
+      });
+    });
+  }
+
 export async function vestsToHive(vests) {
     return retryWithFailover(async () => {
         return new Promise((resolve, reject) => {
@@ -200,4 +241,16 @@ export async function vestsToHive(vests) {
             });
         });
     });
+}
+
+async function calculateAPR(totalWeeklyRewards, vestingShares) {
+    try {
+        const totalVestingHive = await vestsToHive(vestingShares);
+        const annualRewards = totalWeeklyRewards * 52;
+        const apr = (annualRewards / totalVestingHive) * 100;
+        return apr;
+    } catch (error) {
+        console.error('Error calculating APR:', error);
+        throw error;
+    }
 }
