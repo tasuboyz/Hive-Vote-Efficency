@@ -1,0 +1,336 @@
+.filter-popup {
+    position: absolute;
+    background: var(--filter-background);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    box-shadow: 0 2px 8px var(--shadow-color);
+    z-index: 1000;
+    min-width: 250px;
+    max-width: 400px;
+    max-height: 80vh; /* Use viewport height instead of fixed pixels */
+    display: flex;
+    flex-direction: column;
+    animation: fadeIn 0.2s ease-in-out;
+    overflow: hidden; /* Prevent content from overflowing */
+  }
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .filter-popup > div {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .filter-header {
+    padding: 12px;
+    border-bottom: 1px solid var(--border-color);
+  }
+  
+  .filter-search {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    margin-bottom: 8px;
+    background: var(--input-background);
+    color: var(--text-color);
+    box-sizing: border-box;
+  }
+  
+  .select-options {
+    display: flex;
+    gap: 8px;
+  }
+  
+  .select-options button {
+    padding: 4px 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--input-background);
+    color: var(--text-color);
+    cursor: pointer;
+    font-size: 12px;
+  }
+  
+  .select-options button:hover {
+    background: var(--secondary-color);
+  }
+  
+  .filter-options {
+    overflow-y: auto;
+    padding: 8px;
+    max-height: 250px; /* Reduce slightly to ensure it fits */
+    box-sizing: border-box;
+    width: 100%; /* Ensure it takes full width of parent */
+  }
+  
+  .filter-option {
+    padding: 4px 0;
+    width: 100%; /* Ensure options take full width */
+    box-sizing: border-box;
+  }
+  
+  .filter-option label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  .filter-option input[type="checkbox"] {
+    margin: 0;
+  }
+
+  .filter-option span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis; /* Add ellipsis for overflowing text */
+    max-width: calc(100% - 30px); /* Leave space for checkbox */
+  }
+  
+  .filter-actions {
+    padding: 12px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    border-top: 1px solid var(--border-color);
+  }
+  
+  .filter-actions button {
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    background: var(--input-background);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+  }
+  
+  .filter-actions .apply {
+    background: var(--primary-color);
+    color: white;
+    border: none;
+  }
+  
+  .filter-actions button:hover {
+    opacity: 0.9;
+  }
+  
+  .active-filter .filter-icon {
+    opacity: 1;
+    color: var(--primary-color);
+  }
+  
+  .column-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    cursor: default;
+    padding: 8px;
+  }
+  
+  .text-sort-container {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    flex: 1;
+  }
+  
+  .filter-icon {
+    cursor: pointer;
+    opacity: 0.6;
+    transition: all 0.2s ease;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+  }
+  
+  .filter-icon:hover {
+    opacity: 1;
+    background-color: var(--table-hover-color);
+  }
+  
+  .filter-icon svg {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+    stroke-width: 2;
+  }  
+  
+  .filter-icon.active {
+    color: var(--primary-color);
+    opacity: 1;
+    background-color: var(--table-hover-color);
+  }
+  
+  .filter-icon.active svg {
+    stroke: var(--primary-color);
+  }
+  
+  .sort-icon {
+    opacity: 0.4;
+    font-size: 0.8em;
+    margin-left: 4px;
+    transition: all 0.2s ease;
+  }
+  
+  .sortable:hover .sort-icon {
+    opacity: 0.8;
+  }
+  
+  .sort-asc .sort-icon,
+  .sort-desc .sort-icon {
+    opacity: 1;
+  }
+  
+  .sort-desc .sort-icon {
+    transform: rotate(180deg);
+  }
+  
+  .date-filter-content {
+    padding: 15px;
+  }
+  
+  .date-range {
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  .date-range label {
+    width: 30px;
+    color: var(--text-color);
+  }
+  
+  .date-input {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--input-background);
+    color: var(--text-color);
+    width: 150px;
+    text-align: center;
+    font-family: monospace;
+    cursor: pointer;
+    max-width: calc(100% - 40px);
+    box-sizing: border-box;
+  }
+  
+  .date-input:read-only {
+    background-color: var(--input-background);
+    cursor: default;
+  }
+  
+  .quick-filters {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin: 15px 0;
+  }
+  
+  .quick-filters button {
+    padding: 6px 12px;
+    background: var(--secondary-color);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-color);
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  
+  .quick-filters button:hover {
+    background: var(--primary-color);
+  }
+  
+  /* Improve header appearance */
+  th {
+    position: relative;
+    padding: 0 !important;
+    background-color: var(--table-header-color);
+    font-weight: 600;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+    user-select: none;
+  }
+  
+  @media (max-width: 768px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .table-container {
+        margin: 0 -20px;
+        border-radius: 0;
+    }
+
+    .sortable {
+        white-space: nowrap;
+    }
+
+    .filter-popup {
+        position: fixed;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%);
+        width: 90%;
+        max-width: 350px;
+    }
+}
+
+/* Add these styles to your existing CSS */
+
+.sorting-controls {
+    padding: 10px;
+}
+
+.sort-header {
+    margin-bottom: 8px;
+}
+
+.sort-buttons {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.sort-buttons button {
+    flex: 1;
+    padding: 6px 10px;
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.sort-buttons button:hover {
+    background-color: #e0e0e0;
+}
+
+.popup-divider {
+    height: 1px;
+    background-color: #ddd;
+    margin: 10px 0;
+    width: 100%;
+    box-sizing: border-box;
+}

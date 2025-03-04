@@ -1,0 +1,167 @@
+:root {
+    --primary-color: #E31337;
+    --secondary-color: #2c2c2c;
+    --text-color: #e1e1e1;
+    --border-color: #404040;
+    --shadow-color: rgba(0, 0, 0, 0.3);
+    --background-color: #1a1a1a;
+    --table-hover-color: #2a2a2a;
+    --table-header-color: #252525;
+    --card-background: #2c2c2c;
+    --input-background: #333;
+    --filter-background: #2c2c2c;
+  }
+  
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    line-height: 1.6;
+    color: var(--text-color);
+    margin: 0;
+    padding: 20px;
+    background-color: var(--background-color);
+  }
+  
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 40px;
+  }
+  
+  .header h1 {
+    color: var(--primary-color);
+    margin: 0;
+  }  
+  
+  h1 {
+    text-align: center;
+    color: var(--primary-color);
+    margin-bottom: 30px;
+  }
+  
+  .input-group {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  
+  input {
+    flex: 1;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 16px;
+    background-color: var(--input-background);
+    color: var(--text-color);
+  }
+  
+  .btn-calculate {
+    position: relative;
+    padding: 12px 24px;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: background-color 0.3s;
+  }
+  
+  .btn-calculate:hover {
+    background-color: #c01130;
+  }
+  
+  .btn-calculate:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+  }
+  
+  .loader {
+    display: none;
+    width: 20px;
+    height: 20px;
+    border: 3px solid var(--border-color);
+    border-top: 3px solid transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid var(--border-color);
+    border-top: 4px solid var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 20px auto;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  .error {
+    background-color: #4f1c1c;
+    color: #ff9999;
+    padding: 12px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+  }
+  
+  .hidden {
+    display: none;
+  }
+  
+  .loading {
+    text-align: center;
+    margin: 20px 0;
+  }
+  
+  .stats-container {
+    transition: opacity 0.3s ease-in-out;
+  }
+  
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+  }
+  
+  .stat-box {
+    background: var(--card-background);
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px var(--shadow-color);
+    text-align: center;
+  }
+  
+  .stat-box h3 {
+    margin: 0 0 10px;
+    color: var(--text-color);
+    font-size: 1em;
+  }
+  
+  .stat-box p {
+    margin: 0;
+    font-size: 1.5em;
+    font-weight: bold;
+    color: var(--primary-color);
+  }
+  
+  .hive-logo img {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+  }
