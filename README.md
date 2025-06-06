@@ -53,6 +53,17 @@ If you want to run the application locally:
 - **Hive Blockchain**: [hive-js library](https://github.com/openhive-network/hive-js)
 - **No backend required** - connects directly to Hive blockchain nodes
 
+## Architecture
+
+The application is built with a modular architecture:
+
+- **hiveConnector.js**: Handles blockchain connections with automatic failover between nodes
+- **curationCalculator.js**: Core logic for calculating curation efficiency metrics
+- **hiveApi.js**: Interface between the UI and blockchain logic
+- **ui.js**: Manages the user interface components and updates
+- **sorting.js**: Handles the sorting functionality for the results table
+- **filters.js**: Implements filtering capabilities for the results table
+
 ## Contributing
 
 Contributions are welcome! Feel free to report issues or submit pull requests.
